@@ -87,6 +87,8 @@ int main(int argc, char* argv[])
 	int log_level = 2;
 	int num_hashes = 100;
 	int api_port = 0;
+	std::string user_given_host;
+	std::string user_given_port;
 
 	for (int i = 1; i < argc; ++i)
 	{
@@ -94,6 +96,12 @@ int main(int argc, char* argv[])
 
 		switch (argv[i][1])
 		{
+		case 's':
+			user_given_host = argv[++i];
+			break;
+		case 'r':
+			user_given_port = argv[++i];
+			break;
 		case 'l':
 			location = argv[++i];
 			break;
@@ -148,6 +156,13 @@ int main(int argc, char* argv[])
 	{
 		std::string host = "equihash." + location + ".nicehash.com";
 		std::string port = "3357";
+		// Get overrides from user, if provided.
+		if (!user_given_host.empty()) {
+			host = user_given_host;
+		}
+		if (!user_given_port.empty()) {
+			port = user_given_port;
+		}
 
 		std::shared_ptr<boost::asio::io_service> io_service(new boost::asio::io_service);
 
