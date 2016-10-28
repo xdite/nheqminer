@@ -30,6 +30,10 @@ typedef uint32_t eh_index;
 
 #define BOOST_LOG_CUSTOM(sev, pos) BOOST_LOG_TRIVIAL(sev) << "miner#" << pos << " | "
 
+#define CONTEXT_SIZE 178033152
+
+extern "C" void EhPrepare(void *context, void *input);
+extern "C" int32_t EhSolver(void *context, uint32_t nonce);
 
 void CompressArray(const unsigned char* in, size_t in_len,
 	unsigned char* out, size_t out_len,
@@ -121,7 +125,14 @@ void static ZcashMinerThread(ZcashMiner* miner, int size, int pos)
         (const ZcashJob* job) mutable {
             std::lock_guard<std::mutex> lock{*m_zmt.get()};
             if (job) {
-				BOOST_LOG_CUSTOM(debug, pos) << "Loading new job #" << job->jobId();
+//				BOOST_LOG_CUSTOM(info, pos) << "Header #" << job->header;
+//            	BOOST_LOG_CUSTOM(info, pos) << "Space #" << job->nonce2Space;
+//				BOOST_LOG_CUSTOM(info, pos) << "Offset #" << job->nonce1Size();
+//				BOOST_LOG_CUSTOM(info, pos) << "Increment #" << ArithToUint256(&(job->nonce2Inc()));
+//				BOOST_LOG_CUSTOM(info, pos) << "Target #" << job->serverTarget();
+
+
+            	BOOST_LOG_CUSTOM(debug, pos) << "Loading new job #" << job->jobId();
 				jobId = job->jobId();
 				nTime = job->time;
                 header = job->header;
@@ -141,6 +152,10 @@ void static ZcashMinerThread(ZcashMiner* miner, int size, int pos)
             }
         }
     ).track_foreign(m_zmt)); // So the signal disconnects when the mining thread exits
+
+    // Initialize context memory.
+	void* context_alloc = malloc(CONTEXT_SIZE+4096);
+	void* context = (void*) (((long) context_alloc+4095) & -4096);
 
     try {
         while (true) {
@@ -187,9 +202,6 @@ void static ZcashMinerThread(ZcashMiner* miner, int size, int pos)
 				ss << I;
 			}
 
-			const char *tequihash_header = (char *)&ss[0];
-			unsigned int tequihash_header_len = ss.size();
-
             // Start working
             while (true) {
 				BOOST_LOG_CUSTOM(debug, pos) << "Running Equihash solver with nNonce = " << nonce.ToString();
@@ -221,50 +233,86 @@ void static ZcashMinerThread(ZcashMiner* miner, int size, int pos)
                     return false;
                 };
 
+                //////////////////////////////////////////////////////////////////////////
+                // Xenoncat solver.
+                /////////////////////////////////////////////////////////////////////////
+                // bnonce is 32 bytes, read last four bytes as nonce int and send it to
+                // eh solver method.
+    			unsigned char *tequihash_header = (unsigned char *)&ss[0];
+    			unsigned int tequihash_header_len = ss.size();
+    			unsigned char inputheader[144];
+    			memcpy(inputheader, tequihash_header, tequihash_header_len);
+
+    			// Write 32 byte nonce to input header.
+    			uint256 arthNonce = ArithToUint256(nonce);
+    			memcpy(inputheader + tequihash_header_len, (unsigned  char*) arthNonce.begin(), arthNonce.size());
+
+
+    			EhPrepare(context, (void *) inputheader);
+
+                unsigned char* nonceBegin = bNonce.begin();
+                uint32_t nonceToApi = *(uint32_t *)(nonceBegin+28);
+            	uint32_t numsolutions = EhSolver(context, nonceToApi);
+            	if (!cancelSolver.load()) {
+            		for (uint32_t i=0; i<numsolutions; i++) {
+            			// valid block method expects vector of unsigned chars.
+            			unsigned char* solutionStart = (unsigned char*)(((unsigned char*)context)+1344*i);
+            			unsigned char* solutionEnd = solutionStart + 1344;
+            			std::vector<unsigned char> solution(solutionStart, solutionEnd);
+            			validBlock(solution);
+            		}
+            	}
+				speed.AddHash(); // Metrics, add one hash execution.
+
+            	//////////////////////////////////////////////////////////////////////////
+            	// Xenoncat solver.
+            	/////////////////////////////////////////////////////////////////////////
+
+
 				//////////////////////////////////////////////////////////////////////////
 				// TROMP EQ SOLVER START
 				// I = the block header minus nonce and solution.
 				// Nonce
 				// Create solver and initialize it with header and nonce.
-				equi eq(1);
-				eq.setnonce(tequihash_header, tequihash_header_len, (const char*)bNonce.begin(), bNonce.size());
-				eq.digit0(0);
-				eq.xfull = eq.bfull = eq.hfull = 0;
-				eq.showbsizes(0);
-				u32 r = 1;
-				for ( ; r < WK; r++) {
-					if (cancelSolver.load()) break;
-					r & 1 ? eq.digitodd(r, 0) : eq.digiteven(r, 0);
-					eq.xfull = eq.bfull = eq.hfull = 0;
-					eq.showbsizes(r);
-				}
-				if (r == WK && !cancelSolver.load())
-				{
-					eq.digitK(0);
-
-					// Convert solution indices to charactar array(decompress) and pass it to validBlock method.
-					u32 nsols = 0;
-					unsigned s = 0;
-					for (; s < eq.nsols; s++)
-					{
-						if (cancelSolver.load()) break;
-						nsols++;
-						std::vector<eh_index> index_vector(PROOFSIZE);
-						for (u32 i = 0; i < PROOFSIZE; i++) {
-							index_vector[i] = eq.sols[s][i];
-						}
-						std::vector<unsigned char> sol_char = GetMinimalFromIndices(index_vector, DIGITBITS);
-
-						if (validBlock(sol_char))
-						{
-							// If we find a POW solution, do not try other solutions
-							// because they become invalid as we created a new block in blockchain.
-							//break;
-						}
-					}
-					if (s == eq.nsols)
-						speed.AddHash();
-				}
+//				equi eq(1);
+//				eq.setnonce(tequihash_header, tequihash_header_len, (const char*)bNonce.begin(), bNonce.size());
+//				eq.digit0(0);
+//				eq.xfull = eq.bfull = eq.hfull = 0;
+//				eq.showbsizes(0);
+//				u32 r = 1;
+//				for ( ; r < WK; r++) {
+//					if (cancelSolver.load()) break;
+//					r & 1 ? eq.digitodd(r, 0) : eq.digiteven(r, 0);
+//					eq.xfull = eq.bfull = eq.hfull = 0;
+//					eq.showbsizes(r);
+//				}
+//				if (r == WK && !cancelSolver.load())
+//				{
+//					eq.digitK(0);
+//
+//					// Convert solution indices to character array(decompress) and pass it to validBlock method.
+//					u32 nsols = 0;
+//					unsigned s = 0;
+//					for (; s < eq.nsols; s++)
+//					{
+//						if (cancelSolver.load()) break;
+//						nsols++;
+//						std::vector<eh_index> index_vector(PROOFSIZE);
+//						for (u32 i = 0; i < PROOFSIZE; i++) {
+//							index_vector[i] = eq.sols[s][i];
+//						}
+//						std::vector<unsigned char> sol_char = GetMinimalFromIndices(index_vector, DIGITBITS);
+//
+//						if (validBlock(sol_char))
+//						{
+//							// If we find a POW solution, do not try other solutions
+//							// because they become invalid as we created a new block in blockchain.
+//							//break;
+//						}
+//					}
+//					if (s == eq.nsols)
+//						speed.AddHash();
+//				}
 				//////////////////////////////////////////////////////////////////////
 				// TROMP EQ SOLVER END
 				//////////////////////////////////////////////////////////////////////
@@ -306,6 +354,9 @@ void static ZcashMinerThread(ZcashMiner* miner, int size, int pos)
 		BOOST_LOG_CUSTOM(info, pos) << "Runtime error: " << e.what();
         return;
     }
+
+    // Free the memory allocated previously for xenoncat context.
+    free(context_alloc);
 }
 
 ZcashJob* ZcashJob::clone() const
