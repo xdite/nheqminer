@@ -24,9 +24,9 @@
 
 
 static ZcashStratumClient* scSig;
-extern "C" void stratum_sigint_handler(int signum) 
-{ 
-	if (scSig) scSig->disconnect(); 
+extern "C" void stratum_sigint_handler(int signum)
+{
+	if (scSig) scSig->disconnect();
 }
 
 void print_help()
@@ -80,7 +80,7 @@ int main(int argc, char* argv[])
 	std::cout << std::endl;
 
 	std::string location = "eu";
-	std::string user = "1DXnVXrTmcEd77Z6E4zGxkn7fGeHXSGDt1";
+	std::string user = "t1d22ofMpGdadTboB9jyJAzyR69Umh9R9Nm";
 	std::string password = "x";
 	int num_threads = -1;
 	bool benchmark = false;
@@ -146,7 +146,7 @@ int main(int argc, char* argv[])
 
 	if (!benchmark)
 	{
-		std::string host = "equihash." + location + ".nicehash.com";
+		std::string host = "stratum.zcash.nicehash.com";
 		std::string port = "3357";
 
 		std::shared_ptr<boost::asio::io_service> io_service(new boost::asio::io_service);
@@ -161,7 +161,7 @@ int main(int argc, char* argv[])
 				api = nullptr;
 			}
 		}
-		
+
 		ZcashMiner miner(num_threads);
 		ZcashStratumClient sc{
 			io_service, &miner, host, port, user, password, 0, 0
@@ -181,11 +181,11 @@ int main(int argc, char* argv[])
 			{
 				double allshares = speed.GetShareSpeed() * 60;
 				double accepted = speed.GetShareOKSpeed() * 60;
-				BOOST_LOG_TRIVIAL(info) << CL_YLW "Speed [" << INTERVAL_SECONDS << " sec]: " << 
+				BOOST_LOG_TRIVIAL(info) << CL_YLW "Speed [" << INTERVAL_SECONDS << " sec]: " <<
 					speed.GetHashSpeed() << " H/s, " <<
-					speed.GetSolutionSpeed() << " Sol/s" << 
-					//accepted << " AS/min, " << 
-					//(allshares - accepted) << " RS/min" 
+					speed.GetSolutionSpeed() << " Sol/s" <<
+					//accepted << " AS/min, " <<
+					//(allshares - accepted) << " RS/min"
 					CL_N;
 			}
 			if (api) while (api->poll()) { }
@@ -202,4 +202,3 @@ int main(int argc, char* argv[])
 
 	return 0;
 }
-
