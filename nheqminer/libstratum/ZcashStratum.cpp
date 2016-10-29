@@ -150,6 +150,21 @@ void static ZcashMinerThread(ZcashMiner* miner, int size, int pos)
 	void* context_alloc = malloc(CONTEXT_SIZE+4096);
 	void* context = (void*) (((long) context_alloc+4095) & -4096);
 
+
+	// 0 = tromp
+	// 1 = avx2
+	// TODO might need to add avx1.
+	unsigned int MODE = 0;
+	if (__builtin_cpu_supports("avx2")) {
+		MODE = 1;
+		BOOST_LOG_CUSTOM(info, pos) << "Using Xenoncat's AVX2 solver. ";
+	}
+	else {
+		MODE = 0;
+		BOOST_LOG_CUSTOM(info, pos) << "Using Tromp's solver.";
+	}
+
+
     try {
         while (true) {
             // Wait for work
@@ -225,7 +240,8 @@ void static ZcashMinerThread(ZcashMiner* miner, int size, int pos)
                     // We're a pooled miner, so try all solutions
                     return false;
                 };
-
+		
+		if(MODE==1) {
                 //////////////////////////////////////////////////////////////////////////
                 // Xenoncat solver.
                 /////////////////////////////////////////////////////////////////////////
@@ -260,7 +276,59 @@ void static ZcashMinerThread(ZcashMiner* miner, int size, int pos)
             	//////////////////////////////////////////////////////////////////////////
             	// Xenoncat solver.
             	/////////////////////////////////////////////////////////////////////////
-				
+		}
+		else {
+            //////////////////////////////////////////////////////////////////////////
+            // TROMP EQ SOLVER START
+            // I = the block header minus nonce and solution.
+            // Nonce
+            // Create solver and initialize it with header and nonce.
+			unsigned char *tequihash_header = (unsigned char *)&ss[0];
+			unsigned int tequihash_header_len = ss.size();
+			equi eq(1);
+          eq.setnonce((const char *) tequihash_header, tequihash_header_len, (const char*)bNonce.begin(), bNonce.size());
+          eq.digit0(0);
+          eq.xfull = eq.bfull = eq.hfull = 0;
+          eq.showbsizes(0);
+          u32 r = 1;
+          for ( ; r < WK; r++) {
+                  if (cancelSolver.load()) break;
+                  r & 1 ? eq.digitodd(r, 0) : eq.digiteven(r, 0);
+                  eq.xfull = eq.bfull = eq.hfull = 0;
+                  eq.showbsizes(r);
+          }
+          if (r == WK && !cancelSolver.load())
+          {
+                  eq.digitK(0);
+
+                  // Convert solution indices to character array(decompress) and pass it to validBlock method.
+                  u32 nsols = 0;
+                  unsigned s = 0;
+                  for (; s < eq.nsols; s++)
+                  {
+                          if (cancelSolver.load()) break;
+                          nsols++;
+                          std::vector<eh_index> index_vector(PROOFSIZE);
+                          for (u32 i = 0; i < PROOFSIZE; i++) {
+                                  index_vector[i] = eq.sols[s][i];
+                          }
+                          std::vector<unsigned char> sol_char = GetMinimalFromIndices(index_vector, DIGITBITS);
+
+                          if (validBlock(sol_char))
+                          {
+                                  // If we find a POW solution, do not try other solutions
+                                  // because they become invalid as we created a new block in blockchain.
+                                  //break;
+                          }
+                  }
+                  if (s == eq.nsols)
+                          speed.AddHash();
+          }
+            //////////////////////////////////////////////////////////////////////
+            // TROMP EQ SOLVER END
+            //////////////////////////////////////////////////////////////////////
+		}
+
                 // Check for stop
 				if (!miner->minerThreadActive[pos])
 					throw boost::thread_interrupted();
