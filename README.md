@@ -25,7 +25,7 @@ Under Ubuntu open a terminal and run the following commands:
 ## Linux (Ubuntu/Debian based, Tested on Ubuntu 16.04):
 To build under Ubuntu Linux make sure you have Qt5 installed. You can install it manually from [Qt website](https://www.qt.io/) or install it from the command line: `sudo apt-get install qt5-default`.
 Open a terminal and cd to nheqminer root folder and run the following commands (make sure you have qmake in your PATH, if installed manually from Qt website you will have to export it to your PATH):
-  - `git clone https://github.com/nicehash/nheqminer.git`
+  - `git clone https://github.com/sarath-hotspot/nheqminer.git`
   - `cd nheqminer`
   - `mkdir build`
   - `cd build`
