@@ -146,8 +146,8 @@ int main(int argc, char* argv[])
 
 	if (!benchmark)
 	{
-		std::string host = "stratum.zcash.nicehash.com";
-		std::string port = "3357";
+		std::string host = "us1-zcash.flypool.org";
+		std::string port = "3333";
 
 		std::shared_ptr<boost::asio::io_service> io_service(new boost::asio::io_service);
 
