@@ -80,7 +80,7 @@ nheqminer  -l zmine.io:1337 -u <zcash transparent address>
 ## Donations
 If you feel this project is useful to you. Feel free to donate.
 
-My BTC address: '''1PqPwYC8u2XCQxJv6qu3HwCRdQkdsqhXRS''' 
+    My BTC address: **1PqPwYC8u2XCQxJv6qu3HwCRdQkdsqhXRS**
 
 
 
