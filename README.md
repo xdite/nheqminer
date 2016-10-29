@@ -63,3 +63,24 @@ Example to mine with your own BTC address and worker1 on EU server, using 6 thre
         nheqminer_x64_AVX.exe -l eu -u YOUR_BTC_ADDRESS_HERE.worker1 -t 6
 
 <i>Note: if you have a 4-core CPU with hyper threading enabled (total 8 threads) it is best to run with only 6 threads (experimental benchmarks shows that best results are achieved with 75% threads utilized)</i>
+
+
+# Sarath's Edits
+
+My integration of Xenoncat's code in nheqminer works only in Linux (I did not verify it in other operating systems). 
+
+## Pointing this miner to other stratum based pools. 
+### supernova
+nheqminer -l zec.suprnova.cc:2142 -u <username>.<workername> -p <password> -t 2
+
+### zmine
+nheqminer  -l zmine.io:1337 -u <zcash transparent address> 
+
+
+## Donations
+If you feel this project is useful to you. Feel free to donate.
+
+My BTC address: '''1PqPwYC8u2XCQxJv6qu3HwCRdQkdsqhXRS''' 
+
+
+

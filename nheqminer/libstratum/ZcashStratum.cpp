@@ -125,13 +125,6 @@ void static ZcashMinerThread(ZcashMiner* miner, int size, int pos)
         (const ZcashJob* job) mutable {
             std::lock_guard<std::mutex> lock{*m_zmt.get()};
             if (job) {
-//				BOOST_LOG_CUSTOM(info, pos) << "Header #" << job->header;
-//            	BOOST_LOG_CUSTOM(info, pos) << "Space #" << job->nonce2Space;
-//				BOOST_LOG_CUSTOM(info, pos) << "Offset #" << job->nonce1Size();
-//				BOOST_LOG_CUSTOM(info, pos) << "Increment #" << ArithToUint256(&(job->nonce2Inc()));
-//				BOOST_LOG_CUSTOM(info, pos) << "Target #" << job->serverTarget();
-
-
             	BOOST_LOG_CUSTOM(debug, pos) << "Loading new job #" << job->jobId();
 				jobId = job->jobId();
 				nTime = job->time;
@@ -267,55 +260,6 @@ void static ZcashMinerThread(ZcashMiner* miner, int size, int pos)
             	//////////////////////////////////////////////////////////////////////////
             	// Xenoncat solver.
             	/////////////////////////////////////////////////////////////////////////
-
-
-				//////////////////////////////////////////////////////////////////////////
-				// TROMP EQ SOLVER START
-				// I = the block header minus nonce and solution.
-				// Nonce
-				// Create solver and initialize it with header and nonce.
-//				equi eq(1);
-//				eq.setnonce(tequihash_header, tequihash_header_len, (const char*)bNonce.begin(), bNonce.size());
-//				eq.digit0(0);
-//				eq.xfull = eq.bfull = eq.hfull = 0;
-//				eq.showbsizes(0);
-//				u32 r = 1;
-//				for ( ; r < WK; r++) {
-//					if (cancelSolver.load()) break;
-//					r & 1 ? eq.digitodd(r, 0) : eq.digiteven(r, 0);
-//					eq.xfull = eq.bfull = eq.hfull = 0;
-//					eq.showbsizes(r);
-//				}
-//				if (r == WK && !cancelSolver.load())
-//				{
-//					eq.digitK(0);
-//
-//					// Convert solution indices to character array(decompress) and pass it to validBlock method.
-//					u32 nsols = 0;
-//					unsigned s = 0;
-//					for (; s < eq.nsols; s++)
-//					{
-//						if (cancelSolver.load()) break;
-//						nsols++;
-//						std::vector<eh_index> index_vector(PROOFSIZE);
-//						for (u32 i = 0; i < PROOFSIZE; i++) {
-//							index_vector[i] = eq.sols[s][i];
-//						}
-//						std::vector<unsigned char> sol_char = GetMinimalFromIndices(index_vector, DIGITBITS);
-//
-//						if (validBlock(sol_char))
-//						{
-//							// If we find a POW solution, do not try other solutions
-//							// because they become invalid as we created a new block in blockchain.
-//							//break;
-//						}
-//					}
-//					if (s == eq.nsols)
-//						speed.AddHash();
-//				}
-				//////////////////////////////////////////////////////////////////////
-				// TROMP EQ SOLVER END
-				//////////////////////////////////////////////////////////////////////
 				
                 // Check for stop
 				if (!miner->minerThreadActive[pos])
