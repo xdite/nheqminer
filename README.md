@@ -71,10 +71,10 @@ My integration of Xenoncat's code in nheqminer works only in Linux (I did not ve
 
 ## Pointing this miner to other stratum based pools. 
 ### supernova
-nheqminer -l zec.suprnova.cc:2142 -u <username>.<workername> -p <password> -t 2
+nheqminer -l zec.suprnova.cc:2142 -u username.workername -p password -t threadCount 
 
 ### zmine
-nheqminer  -l zmine.io:1337 -u <zcash transparent address> 
+nheqminer  -l zmine.io:1337 -u ZcashTransparentAddress
 
 
 ## Donations
